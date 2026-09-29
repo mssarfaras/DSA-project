@@ -1,6 +1,6 @@
-package tests;
+package test;
 
-import hash.StudentHashTable;
+import hashing.StudentHashTable;
 import model.Student;
 import tree.StudentBST;
 

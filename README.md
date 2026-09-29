@@ -1,449 +1,242 @@
 # University Student Record and Campus Route Management System
-## CIT300 Data Structures and Algorithms - Group Assignment
+## CIT300 Data Structures and Algorithms — Group Assignment
 
 ---
 
-### Component: Student Record Management & Custom Singly Linked List
-- **Assigned Member:** MS Sarfaras
-- **Student ID:** 23DA2-0727
-- **Module:** CIT300 Data Structures and Algorithms
+## 1. Project Overview & Group Members
+
+This project is a fully integrated, high-performance Java console application developed for the **CIT300 Data Structures and Algorithms** course. It unites four custom, manually implemented data structure subsystems into a single application to manage student records, administrative requests, index lookups, and campus route navigation without external libraries.
+
+### Assigned Group Members & Roles
+
+| Member Name | Student ID | Assigned Contribution | Key Data Structures |
+| :--- | :--- | :--- | :--- |
+| **MS Sarfaras** | `23DA2-0727` | Student Records & Custom Linked List | Singly Linked List, Student Model, Validation |
+| **J. Nisathn** | `23DA2-0684` | Action History & Service Request Queue | Custom LIFO Linked Stack, Custom FIFO Linked Queue |
+| **Shawky** | `23DA2-0588` | Indexing & Fast Retrieval | Binary Search Tree (BST), Separate-Chaining Hash Table |
+| **IF Hasna** | `23DA2-1154` | Campus Route Management & Graph Traversals | Adjacency List Graph, Custom Graph Queue, BFS & DFS |
 
 ---
 
-## 1. Overview and Responsibility
-
-This component is the core **Student Record Management** subsystem of the larger university management application. It is responsible for:
-1. Defining the canonical **Student** entity model used throughout the entire system.
-2. Implementing a custom, memory-efficient **Singly Linked List (`StudentLinkedList`)** from scratch without relying on `java.util.LinkedList` or any external data structure libraries.
-3. Providing full **CRUD** (Create, Read, Update, Delete) student record operations.
-4. Implementing robust input validation and defensive error handling (preventing duplicate IDs, invalid marks, null/empty values, and handling missing records).
-5. Exposing clean, modular, and decoupled public APIs for seamless integration with other team members' components:
-   - **Member 1:** Stack + Queue (Undo/Redo, Registration Processing)
-   - **Member 2:** BST/AVL Trees + Hashing (Fast Searching, Indexing)
-   - **Member 3:** Graph + BFS/DFS (Campus Route Management & Student Location Mapping)
-
----
-
-## 2. Directory and File Structure
+## 2. Final Project Directory Structure
 
 ```
-DSA project/
+DSA-project/
+│
 ├── .gitignore
 ├── README.md
-├── bin/                              # Compiled .class binaries (git-ignored)
+├── bin/                                # Compiled Java bytecode (git-ignored)
 └── src/
+    │
+    ├── Main.java                       # Single unified interactive console application
+    │
     ├── model/
-    │   └── Student.java              # Canonical Student domain model
+    │   └── Student.java                # Canonical, shared Student model entity
+    │
     ├── linkedlist/
-    │   ├── StudentNode.java          # Singly linked list node
-    │   └── StudentLinkedList.java    # Custom Linked List data structure
-    ├── validation/
-    │   ├── ValidationException.java  # Custom checked exception
-    │   └── StudentValidator.java     # Validation utility rules
+    │   ├── StudentNode.java            # Node structure for singly linked list
+    │   └── StudentLinkedList.java      # Custom Singly Linked List implementation
+    │
+    ├── stack/
+    │   ├── Action.java                 # Student operation action model
+    │   └── ActionStack.java            # Custom LIFO linked stack
+    │
+    ├── queue/
+    │   ├── ServiceRequest.java         # Student service request model
+    │   └── ServiceRequestQueue.java    # Custom FIFO linked queue
+    │
+    ├── tree/
+    │   ├── StudentTreeNode.java        # Node structure for student BST
+    │   └── StudentBST.java             # Binary Search Tree ordered by Student ID
+    │
+    ├── hashing/
+    │   └── StudentHashTable.java       # Custom separate-chaining Hash Table
+    │
+    ├── graph/
+    │   ├── GraphNode.java              # Campus location vertex with adjacency list
+    │   ├── GraphQueue.java             # Custom FIFO queue for BFS traversal
+    │   └── CampusGraph.java            # Undirected Adjacency List Campus Network
+    │
+    ├── service/
+    │   └── StudentSystem.java          # Central coordinator keeping all structures in sync
+    │
     ├── student/
-    │   └── StudentManager.java       # High-level management controller/service
+    │   └── StudentManager.java         # Student record management service
+    │
+    ├── validation/
+    │   ├── ValidationException.java    # Custom checked validation exception
+    │   └── StudentValidator.java       # Centralized business validation rules
+    │
     └── test/
-        └── StudentRecordTest.java    # Independent demonstration driver (9 test cases)
+        ├── SystemIntegrationTest.java  # Comprehensive 20-scenario integration test suite
+        ├── StudentRecordTest.java      # Member 1 unit/component test suite
+        ├── StackQueueTest.java         # Member 2 unit/component test suite
+        ├── StudentIndexTest.java       # Member 3 unit/component test suite
+        └── CampusGraphTest.java        # Member 4 unit/component test suite
 ```
 
 ---
 
-## 3. Explanation of Classes
+## 3. System Architecture & Central Synchronization
 
-### 3.1 `model.Student`
-- **Fields:**
-  - `private String studentId` (Unique student identifier)
-  - `private String name` (Student's full name)
-  - `private String programme` (Enrolled degree programme)
-  - `private double marks` (Academic marks, 0.0 - 100.0)
-- **Features:**
-  - Standard constructors (Default, Parameterized, and Copy Constructor).
-  - Getters and Setters adhering to encapsulation principles.
-  - `getGrade()`: Dynamically calculates academic letter grades (`A+` down to `F`).
-  - `equals(Object o)` & `hashCode()`: Based strictly on the unique `studentId`, allowing seamless compatibility with Hashing and Sets.
-  - `Comparable<Student>`: Natural ordering by `studentId`, allowing immediate insertion into BST or AVL trees by Member 2.
-  - `toFormattedRow()`: Neatly aligns data columns for tabular terminal output.
+A critical architectural rule of this system is that all indexing and storage structures are kept **consistently synchronized** through the central coordinator `service.StudentSystem`.
 
-### 3.2 `linkedlist.StudentNode`
-- **Fields:**
-  - `private Student data` (Student payload object)
-  - `private StudentNode next` (Reference pointer to the next node)
-- **Features:**
-  - Standard getters/setters for traversing and mutating the chain.
-  - Encapsulated within the `linkedlist` package so external modules never need to manipulate node references directly.
+```
+                        User Input (Main.java)
+                                  │
+                                  ▼
+                     service.StudentSystem (Facade)
+         ┌───────────────┬────────────────┬────────────────┬──────────────┐
+         ▼               ▼                ▼                ▼              ▼
+   StudentLinkedList   StudentBST    StudentHashTable  ActionStack  ServiceRequestQueue
+   (MS Sarfaras)       (Shawky)          (Shawky)      (J. Nisathn)    (J. Nisathn)
+         │               │                │
+         └───────────────┼────────────────┘
+                         ▼
+             Shared model.Student Entity
+```
 
-### 3.3 `linkedlist.StudentLinkedList`
-- **Fields:**
-  - `private StudentNode head` (Pointer to first node)
-  - `private int size` (Cached record count)
-- **Operations:**
-  - `addStudent(Student student)`: Appends student to the list in $O(N)$ time, ensuring uniqueness of `studentId`.
-  - `searchStudent(String studentId)`: Traverses the chain and returns the `Student` object or `null` in $O(N)$ time.
-  - `containsStudent(String studentId)`: Fast boolean existence check.
-  - `updateStudent(String studentId, String newName, String newProgramme, double newMarks)`: Updates fields in-place if record exists.
-  - `deleteStudent(String studentId)`: Deletes head, middle, or tail node in $O(N)$ time while updating `head` and `size`.
-  - `displayStudents()`: Prints a structured console table.
-  - `getSize()` & `isEmpty()`: $O(1)$ size tracking.
-  - `toArray()`: Returns `Student[]` array for easy bulk transfers to Trees, Stacks, Queues, or Hash tables.
-
-### 3.4 `validation.StudentValidator` & `validation.ValidationException`
-- Reusable validator class preventing bad data from entering any subsystem:
-  - **Empty Student ID:** Rejects `null` or blank strings.
-  - **Empty Name / Programme:** Rejects `null` or blank strings.
-  - **Invalid Marks:** Rejects NaN, infinite, negative values (`< 0.0`), and scores exceeding `100.0`.
-  - Static boolean helper methods (`isValidStudentId`, `isValidMarks`, etc.) for safe conditional checks.
-
-### 3.5 `student.StudentManager`
-- High-level coordinator between `StudentLinkedList` and `StudentValidator`.
-- Wraps business rules:
-  - Validates inputs before mutation.
-  - Prevents duplicate Student IDs with clear user feedback.
-  - Handles missing student lookups and updates gracefully without crashes.
-  - Provides formatted console display methods.
-
-### 3.6 `test.StudentRecordTest`
-- Standalone test suite with a dedicated `main()` method.
-- Verifies all 9 assignment requirements in sequential order without touching any future `Main` class.
+### Data Synchronization Flow:
+1. **Adding a Student:**
+   - Validates all fields through `StudentValidator`.
+   - Checks for duplicate ID across `StudentHashTable` and `StudentLinkedList`.
+   - Concurrently inserts the `Student` object into:
+     - `StudentLinkedList`
+     - `StudentBST`
+     - `StudentHashTable`
+   - Pushes an `ADD` action onto `ActionStack` (LIFO).
+2. **Updating a Student:**
+   - Locates student by ID.
+   - Validates updated name, programme, and marks.
+   - Modifies the shared `Student` instance via `StudentLinkedList`.
+   - Re-indexes the node in `StudentBST` and `StudentHashTable`.
+   - Pushes an `UPDATE` action onto `ActionStack`.
+3. **Deleting a Student:**
+   - Verifies existence in `StudentHashTable`.
+   - Removes student from `StudentLinkedList`.
+   - Removes student from `StudentBST`.
+   - Removes student from `StudentHashTable`.
+   - Pushes a `DELETE` action onto `ActionStack`.
 
 ---
 
-## 4. Public API Methods for Integration
+## 4. Component Details & Classes
 
-Other team members can integrate directly with either `StudentManager` or `StudentLinkedList`:
+### 4.1 Shared Model (`model.Student`)
+* **Single Source of Truth:** A single `Student.java` model is shared across the entire project.
+* **Fields:** `studentId`, `name`, `programme`, `marks`.
+* **Encapsulation:** All fields are private with getters and setters.
+* **Features:**
+  * `getGrade()`: Computes letter grade (`A+` to `F`).
+  * `compareTo()`: Lexicographical order by `studentId` for BST ordering.
+  * `equals()` & `hashCode()`: Based strictly on unique `studentId` for Hash Table hashing.
+  * `toFormattedRow()`: Formatted tabular representation.
 
-### From `StudentManager`
-```java
-// Check existence
-boolean exists = manager.containsStudent("23DA2-0727");
+### 4.2 Linked List Component (`linkedlist` & `student`)
+* **Author:** MS Sarfaras (`23DA2-0727`)
+* `StudentNode`: Singly linked list node containing `Student data` and `StudentNode next`.
+* `StudentLinkedList`: Custom singly linked list supporting `addStudent()`, `updateStudent()`, `deleteStudent()`, `searchStudent()`, `displayStudents()`, and `toArray()`.
+* `StudentManager`: Service handling CRUD operations and validation messages.
 
-// Retrieve student reference
-Student student = manager.searchStudent("23DA2-0727");
+### 4.3 Stack & Queue Component (`stack` & `queue`)
+* **Author:** J. Nisathn (`23DA2-0684`)
+* `Action` & `ActionStack`: Custom linked LIFO stack recording `ADD`, `UPDATE`, and `DELETE` actions. Provides `push()`, `pop()`, `peek()`, `isEmpty()`, and `display()`.
+* `ServiceRequest` & `ServiceRequestQueue`: Custom linked FIFO queue managing student administrative requests in arrival order. Provides `enqueue()`, `dequeue()`, `peek()`, and `display()`.
 
-// Register a new student
-boolean success = manager.addStudent("23DA2-0727", "MS Sarfaras", "Computer Science", 88.50);
+### 4.4 Tree & Hashing Component (`tree` & `hashing`)
+* **Author:** Shawky (`23DA2-0588`)
+* `StudentTreeNode` & `StudentBST`: Unbalanced Binary Search Tree ordered by `Student ID`. Provides `insert()`, `search()`, `delete()`, and `displayInOrder()`.
+* `StudentHashTable`: Custom separate-chaining Hash Table with dynamic resizing when load factor exceeds 0.75. Provides $O(1)$ average search, insert, and delete by `Student ID`.
 
-// Update existing student
-boolean updated = manager.updateStudent("23DA2-0727", "MS Sarfaras", "Software Engineering", 91.00);
-
-// Delete student
-boolean deleted = manager.deleteStudent("23DA2-0727");
-
-// Get total count
-int total = manager.getTotalStudents();
-
-// Export array for Trees / Hash Tables / Queues
-Student[] allStudents = manager.getAllStudents();
-
-// Access the underlying linked list
-StudentLinkedList list = manager.getStudentLinkedList();
-```
-
-### From `StudentLinkedList`
-```java
-StudentLinkedList list = new StudentLinkedList();
-
-list.addStudent(student);
-Student s = list.searchStudent("23DA2-0727");
-boolean exists = list.containsStudent("23DA2-0727");
-list.deleteStudent("23DA2-0727");
-list.displayStudents();
-int size = list.getSize();
-Student[] array = list.toArray();
-```
+### 4.5 Campus Graph Component (`graph`)
+* **Author:** IF Hasna (`23DA2-1154`)
+* `GraphNode`: Vertex representing a campus location with an adjacency list of neighbor locations.
+* `GraphQueue`: Custom FIFO queue built from scratch for BFS.
+* `CampusGraph`: Undirected graph supporting dynamic addition/removal of locations and bidirectional roads, Adjacency List display, BFS traversal, DFS recursive traversal, and unweighted shortest path calculation.
 
 ---
 
-## 5. How Other Team Members Can Integrate
+## 5. Console Main Menu (16 Options + Exit)
 
-### Example 1: Member 1 (Stack + Queue)
-```java
-// Transferring students to a Queue for processing
-Queue<Student> registrationQueue = new CustomQueue<>();
-for (Student student : studentManager.getAllStudents()) {
-    registrationQueue.enqueue(student);
-}
+The interactive application runs through `Main.java` with a clean, looping console menu:
+
 ```
+========================================
+   UNIVERSITY STUDENT RECORD SYSTEM
+========================================
+ 1. Add Student Record
+ 2. Update Student Record
+ 3. Delete Student Record
+ 4. Display All Records using Linked List
 
-### Example 2: Member 2 (BST / AVL / Hashing)
-```java
-// Student implements Comparable<Student> and has hashCode()/equals() by studentId
-AVLTree<Student> studentTree = new AVLTree<>();
-CustomHashTable<String, Student> studentHashTable = new CustomHashTable<>();
+ 5. Add Service Request
+ 6. Process Next Service Request
+ 7. Display Recent Actions using Stack
 
-for (Student student : studentManager.getAllStudents()) {
-    studentTree.insert(student);
-    studentHashTable.put(student.getStudentId(), student);
-}
-```
+ 8. Display Students using BST/AVL
+ 9. Search Student using Hashing
 
-### Example 3: Member 3 (Graph + Route Management)
-```java
-// Looking up student when assigning campus route or dorm navigation
-Student student = studentManager.searchStudent(enteredStudentId);
-if (student != null) {
-    graph.findShortestPath(studentCampusLocation, destinationBuilding);
-}
+10. Add Campus Location
+11. Remove Campus Location
+12. Add Campus Connection/Road
+13. Remove Campus Connection/Road
+14. Display Campus Connections
+15. Traverse Campus Locations using BFS
+16. Traverse Campus Locations using DFS
+
+ 0. Exit
+========================================
+Enter your choice:
 ```
 
 ---
 
-## 6. How to Compile and Run
+## 6. Defensive Programming & Input Validation
 
-### 6.1 Compile the Component
-From the project root:
+The system implements defensive input handling to prevent runtime crashes:
+* **Non-numeric menu inputs:** Handled safely via `try-catch` without crashing.
+* **Invalid marks:** Rejects negative marks (`< 0.0`), marks exceeding `100.0`, and non-numeric inputs.
+* **Empty / blank inputs:** Rejects null or blank strings for IDs, names, programmes, locations, and request descriptions.
+* **Duplicate Student IDs:** Detected and rejected with informative error messages.
+* **Missing students / locations:** Handled gracefully with clear user feedback.
+* **Empty Stack / Queue / Tree / Graph:** Informative messages displayed instead of throwing exceptions.
+
+---
+
+## 7. Compilation and Execution Instructions
+
+### 7.1 Compile the Project
+From the repository root directory:
 ```bash
-javac -d bin src/model/*.java src/linkedlist/*.java src/validation/*.java src/student/*.java src/test/*.java
+javac -d bin -cp bin (Get-ChildItem -Recurse -Filter *.java src | ForEach-Object { $_.FullName })
+```
+*(On Linux/macOS bash: `javac -d bin -cp bin $(find src -name "*.java")`)*
+
+### 7.2 Run the Main Interactive Application
+```bash
+java -cp bin Main
 ```
 
-### 6.2 Execute the Test Suite
-```bash
-java -cp bin test.StudentRecordTest
-```
+### 7.3 Run the Test Suites
+* **Full 20-Scenario System Integration Test:**
+  ```bash
+  java -cp bin test.SystemIntegrationTest
+  ```
+* **Individual Component Tests:**
+  ```bash
+  java -cp bin test.StudentRecordTest      # Member 1 (Linked List)
+  java -ea -cp bin test.StackQueueTest     # Member 2 (Stack & Queue)
+  java -ea -cp bin test.StudentIndexTest   # Member 3 (BST & Hash Table)
+  java -cp bin test.CampusGraphTest        # Member 4 (Campus Graph)
+  ```
 
 ---
 
-## Component: Stack and Queue
+## 8. Git Branches and Integration History
 
-- **Assigned Member:** J. Nisath
-- **Student ID:** 23DA2-0684
-
-### Stack: Recent Actions
-
-`stack.ActionStack` is a manually linked LIFO stack. `push(Action)` adds the newest action; `pop()` removes and returns it; `peek()` reads it without removal; `isEmpty()`, `size()`, and `display()` inspect history. `stack.Action` stores an `Action.Type` (`ADD`, `UPDATE`, or `DELETE`), student ID, and description. Display order is newest to oldest.
-
-### Queue: Service Requests
-
-`queue.ServiceRequestQueue` is a manually linked FIFO queue. `enqueue(ServiceRequest)` adds at the rear; `dequeue()` removes and returns the earliest request; `peek()` reads it without removal; `isEmpty()`, `size()`, and `display()` inspect the queue. `queue.ServiceRequest` stores request ID, student ID, and description. Display order is arrival order.
-
-Both structures use their own linked nodes, not Java's built-in Stack or Queue. Null values and blank model fields are rejected with `IllegalArgumentException`. Empty `pop()`, `peek()`, or `dequeue()` calls throw `NoSuchElementException`.
-
-### Integration example
-
-```java
-ActionStack history = new ActionStack();
-history.push(new Action(Action.Type.ADD, studentId, "Student record added"));
-
-ServiceRequestQueue requests = new ServiceRequestQueue();
-requests.enqueue(new ServiceRequest("REQ-001", studentId, "Enrollment letter"));
-ServiceRequest next = requests.dequeue();
-```
-
-Import `stack.Action`, `stack.ActionStack`, `queue.ServiceRequest`, and `queue.ServiceRequestQueue`. These classes store student IDs only and do not duplicate the project's `Student` model.
-
-### Stack and Queue checks
-
-Compile and run the checks from the project root:
-
-```bash
-javac -d bin src/stack/*.java src/queue/*.java src/tests/*.java
-java -ea -cp bin tests.StackQueueTest
-```
-
-The checks cover multi-item display, peek, LIFO/FIFO order, empty operations, and invalid data. Expected final line: `All StackQueueTest checks passed.`
-
----
-
-<<<<<<< HEAD
-## Component: Campus Graph & Route Management
-
-- **Assigned Member:** IF Hasna
-- **Student ID:** 23DA2-1154
-
-### 1. Overview and Responsibility
-
-This component is the **Campus Graph and Route Management** subsystem of the university application. It models the physical university campus as an **undirected graph** using a custom **Adjacency List** structure. It enables campus navigation, facility connection analysis, and route discovery for students and administrators without relying on third-party graph libraries.
-
-### 2. Graph Representation & Structure
-
-- **Vertices (Nodes):** Campus locations (e.g., `Main Gate`, `Library`, `Canteen`, `Laboratory`, `Lecture Hall`, `Student Center`). Implemented in `graph.GraphNode`.
-- **Edges (Roads / Paths):** Undirected, bidirectional paths connecting locations. When a path is added between location $A$ and location $B$, it automatically connects $A \to B$ and $B \to A$.
-- **Adjacency List:** Each location maintains a linked list of direct neighbor names. The graph stores vertices in a map preserving registration order for clean tabular display.
-
-### 3. Key Classes
-
-1. **`graph.GraphNode`**:
-   - Represents a campus location vertex.
-   - Encapsulates location name, adjacent neighbor list, degree counting, and connection helpers.
-2. **`graph.GraphQueue<T>`**:
-   - Custom singly-linked FIFO Queue implemented from scratch.
-   - Used for manual, library-free Breadth-First Search (BFS) and shortest route pathfinding.
-3. **`graph.CampusGraph`**:
-   - Core campus network engine.
-   - Provides vertex/edge mutations (`addLocation`, `removeLocation`, `addConnection`, `removeConnection`), traversals (`bfs`, `dfs`), route navigation (`findShortestPath`), and network queries (`containsLocation`, `hasConnection`, `getNeighbours`, `getLocationCount`, `getConnectionCount`).
-4. **`test.CampusGraphTest`**:
-   - Complete verification suite demonstrating all 13 required test cases plus route navigation.
-
-### 4. Graph Traversals & Route Navigation
-
-- **Breadth-First Search (BFS):**
-  - Explores the campus level-by-level using our manual `GraphQueue`.
-  - Time Complexity: $O(V + E)$, Space Complexity: $O(V)$.
-- **Depth-First Search (DFS):**
-  - Explores campus branches deeply before backtracking using recursion.
-  - Time Complexity: $O(V + E)$, Space Complexity: $O(V)$.
-- **Shortest Route Discovery (`findShortestPath`):**
-  - BFS-based parent-pointer path reconstruction finding the minimum number of roads/hops between any two locations.
-
-### 5. Defensive Validation & Robustness
-
-- **Duplicate Locations:** Handled cleanly with warning feedback; no duplicate nodes created.
-- **Null / Empty Inputs:** Location names validated and sanitized; blanks rejected.
-- **Duplicate Connections:** Verified before adding; duplicate edges rejected.
-- **Missing Location Handling:** Connections to non-existent locations rejected.
-- **Cascade Removal:** Removing a location automatically purges all incoming/outgoing connections from all neighboring vertices.
-- **Safe Traversals:** Running BFS or DFS from a missing location safely returns an empty list without throwing unhandled exceptions.
-
-### 6. Public Integration API
-
-```java
-CampusGraph graph = new CampusGraph();
-
-// Location management
-graph.addLocation("Main Gate");
-graph.addLocation("Library");
-graph.removeLocation("Laboratory");
-boolean exists = graph.containsLocation("Library");
-int totalLocations = graph.getLocationCount();
-
-// Road/Connection management
-graph.addConnection("Main Gate", "Library");
-graph.removeConnection("Main Gate", "Canteen");
-boolean connected = graph.hasConnection("Main Gate", "Library");
-int totalRoads = graph.getConnectionCount();
-
-// Display
-graph.displayConnections();
-graph.displayNeighbours("Library");
-
-// Traversals & Routing
-List<String> bfsPath = graph.bfs("Main Gate");
-List<String> dfsPath = graph.dfs("Main Gate");
-List<String> shortestRoute = graph.findShortestPath("Main Gate", "Student Center");
-```
-
-### 7. Compilation and Test Execution
-
-```bash
-# Compile the graph component and test suite
-javac -d bin src/graph/*.java src/test/CampusGraphTest.java
-
-# Run the 13 verification checks
-java -cp bin test.CampusGraphTest
-```
-
-=======
-## Component: Student BST and Hash Table
-
-- **Assigned Member:** BA. Shawky
-- **Student ID:** 23DA2-0588
-
-### Files
-
-```text
-src/
-├── hash/
-│   └── StudentHashTable.java
-├── tests/
-│   └── StudentIndexTest.java
-└── tree/
-    ├── StudentBST.java
-    └── StudentTreeNode.java
-```
-
-The index structures reuse `model.Student`; they do not introduce another student model.
-Student IDs are trimmed and compared case-insensitively. IDs must not be changed while
-the corresponding student is indexed; if an ID changes, delete the old entry and insert
-the student again so both indexes keep their key ordering and bucket placement valid.
-
-### Binary search tree
-
-`tree.StudentBST` is a manually implemented, unbalanced binary search tree. Each
-`StudentTreeNode` stores a Student ID key, the shared `Student` reference, and child
-links. Insert and search follow the left or right child according to case-insensitive
-ID ordering. Duplicate IDs are rejected without replacing the stored student.
-
-Deletion handles leaf nodes, nodes with one child, and nodes with two children. For
-the two-child case, the smallest node in the right subtree replaces the deleted node.
-`toArrayInOrder()` and `displayInOrder()` visit left subtree, current node, then right
-subtree, displaying IDs in ascending order.
-
-For tree height `h`, insertion, search, and deletion take O(h); they are O(log n) for
-a balanced-shaped tree but O(n) in the worst case (for example, already sorted input).
-An in-order traversal takes O(n) time.
-
-### Hash table
-
-`hash.StudentHashTable` uses a manually implemented array of buckets with **separate
-chaining**: each bucket holds a linked chain of entries, so multiple IDs that map to
-the same bucket are retained. The deterministic hash uses the polynomial recurrence
-`hash = 31 * hash + character` over the trimmed, case-folded ID, then
-`Math.floorMod(hash, capacity)` to obtain a valid bucket index. The table starts at
-capacity 11 by default (or accepts a positive initial capacity) and doubles plus one
-when insertion would take the load factor above 0.75.
-
-Search, insertion, and deletion are expected O(1) with a reasonable distribution and
-O(n) in the worst case when many entries share a bucket. Resizing takes O(n).
-
-### Public API
-
-```java
-StudentBST tree = new StudentBST();
-boolean addedToTree = tree.insert(student);
-Student foundInTree = tree.search(studentId); // null if absent or invalid
-boolean removedFromTree = tree.delete(studentId);
-boolean treeHasId = tree.contains(studentId);
-boolean treeEmpty = tree.isEmpty();
-int treeSize = tree.size();
-Student[] sortedStudents = tree.toArrayInOrder();
-tree.displayInOrder();
-
-StudentHashTable index = new StudentHashTable(); // optionally new StudentHashTable(17)
-boolean addedToIndex = index.insert(student);
-Student foundInIndex = index.search(studentId); // null if absent or invalid
-boolean removedFromIndex = index.delete(studentId);
-boolean indexHasId = index.contains(studentId);
-int indexSize = index.size();
-int bucket = index.hashIndex(studentId); // current bucket, useful to inspect collisions
-index.display();
-```
-
-Both `insert` methods throw `IllegalArgumentException` for a null student or a null/
-blank student ID and return false for a duplicate ID. `search` returns null and
-`delete` returns false for missing IDs; blank/null lookup or deletion inputs are
-treated as invalid and return those same absent-result values. `StudentTreeNode`
-exposes read-only getters; tree links are not part of the integration API.
-
-### Integration with the shared student manager and final Main
-
-Build each index from the canonical list and use hashing for direct lookups while
-using the BST when sorted display is required:
-
-```java
-StudentBST studentTree = new StudentBST();
-StudentHashTable studentIndex = new StudentHashTable();
-for (Student student : studentManager.getAllStudents()) {
-    studentTree.insert(student);
-    studentIndex.insert(student);
-}
-
-Student student = studentIndex.search(enteredStudentId);
-studentTree.displayInOrder();
-```
-
-When a student is added or deleted through the manager, apply the same successful
-operation to both indexes. Keep the canonical list/manager as the owner of records;
-these structures are search and display indexes, not replacements for the linked list.
-
-### Checks
-
-Compile and run the standalone checks from the project root:
-
-```bash
-javac -d bin src/model/Student.java src/tree/*.java src/hash/*.java src/tests/StudentIndexTest.java
-java -ea -cp bin tests.StudentIndexTest
-```
-
-The checks exercise ordered traversal, two-child and leaf deletion, existing/missing
-searches, duplicate and invalid IDs, an explicit collision chain, hash deletion, and
-table resizing. Expected final line: `All StudentIndexTest checks passed.`
->>>>>>> 730c80ec6a6b3507ea87731b7ccb4d22d780ec7f
+The integration was completed from feature branches into `master`:
+* `sarfaras-student-records`: Linked List + Student Record CRUD + Validation
+* `nisathn-stack-queue`: ActionStack (LIFO) + ServiceRequestQueue (FIFO)
+* `shawky-bst-hashing`: StudentBST (In-Order) + StudentHashTable (Separate Chaining)
+* `hasna-graph`: CampusGraph (Adjacency List) + GraphQueue + BFS/DFS
+* `master`: Integrated unified console application (`Main.java`) + `StudentSystem.java` facade

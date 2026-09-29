@@ -357,3 +357,19 @@ java -ea -cp bin tests.StudentIndexTest
 The checks exercise ordered traversal, two-child and leaf deletion, existing/missing
 searches, duplicate and invalid IDs, an explicit collision chain, hash deletion, and
 table resizing. Expected final line: `All StudentIndexTest checks passed.`
+
+---
+
+## Console application
+
+`app.Main` is the console entry point for the currently available student record,
+BST/hash index, action stack, and service request queue components. Compile all Java
+sources and start the menu from the project root:
+
+```powershell
+javac -d bin (Get-ChildItem src -Recurse -Filter *.java).FullName
+java -cp bin app.Main
+```
+
+The main class is in the `app` package, so launch it as `app.Main`, not `Main`.
+The campus graph/BFS/DFS component is not currently included in this menu.

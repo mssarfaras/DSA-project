@@ -13,7 +13,7 @@ This project is a fully integrated, high-performance Java console application de
 | :--- | :--- | :--- | :--- |
 | **MS Sarfaras** | `23DA2-0727` | Student Records & Custom Linked List | Singly Linked List, Student Model, Validation |
 | **J. Nisathn** | `23DA2-0684` | Action History & Service Request Queue | Custom LIFO Linked Stack, Custom FIFO Linked Queue |
-| **Shawky** | `23DA2-0588` | Indexing & Fast Retrieval | Binary Search Tree (BST), Separate-Chaining Hash Table |
+| **BA. Shawky** | `23DA2-0588` | Indexing & Fast Retrieval | Binary Search Tree (BST), Separate-Chaining Hash Table |
 | **IF Hasna** | `23DA2-1154` | Campus Route Management & Graph Traversals | Adjacency List Graph, Custom Graph Queue, BFS & DFS |
 
 ---

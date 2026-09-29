@@ -245,7 +245,7 @@ The checks cover multi-item display, peek, LIFO/FIFO order, empty operations, an
 
 ## Component: Student BST and Hash Table
 
-- **Assigned Member:** Shawky
+- **Assigned Member:** BA. Shawky
 - **Student ID:** 23DA2-0588
 
 ### Files

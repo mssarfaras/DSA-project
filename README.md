@@ -243,6 +243,7 @@ The checks cover multi-item display, peek, LIFO/FIFO order, empty operations, an
 
 ---
 
+<<<<<<< HEAD
 ## Component: Campus Graph & Route Management
 
 - **Assigned Member:** IF Hasna
@@ -330,3 +331,119 @@ javac -d bin src/graph/*.java src/test/CampusGraphTest.java
 java -cp bin test.CampusGraphTest
 ```
 
+=======
+## Component: Student BST and Hash Table
+
+- **Assigned Member:** BA. Shawky
+- **Student ID:** 23DA2-0588
+
+### Files
+
+```text
+src/
+├── hash/
+│   └── StudentHashTable.java
+├── tests/
+│   └── StudentIndexTest.java
+└── tree/
+    ├── StudentBST.java
+    └── StudentTreeNode.java
+```
+
+The index structures reuse `model.Student`; they do not introduce another student model.
+Student IDs are trimmed and compared case-insensitively. IDs must not be changed while
+the corresponding student is indexed; if an ID changes, delete the old entry and insert
+the student again so both indexes keep their key ordering and bucket placement valid.
+
+### Binary search tree
+
+`tree.StudentBST` is a manually implemented, unbalanced binary search tree. Each
+`StudentTreeNode` stores a Student ID key, the shared `Student` reference, and child
+links. Insert and search follow the left or right child according to case-insensitive
+ID ordering. Duplicate IDs are rejected without replacing the stored student.
+
+Deletion handles leaf nodes, nodes with one child, and nodes with two children. For
+the two-child case, the smallest node in the right subtree replaces the deleted node.
+`toArrayInOrder()` and `displayInOrder()` visit left subtree, current node, then right
+subtree, displaying IDs in ascending order.
+
+For tree height `h`, insertion, search, and deletion take O(h); they are O(log n) for
+a balanced-shaped tree but O(n) in the worst case (for example, already sorted input).
+An in-order traversal takes O(n) time.
+
+### Hash table
+
+`hash.StudentHashTable` uses a manually implemented array of buckets with **separate
+chaining**: each bucket holds a linked chain of entries, so multiple IDs that map to
+the same bucket are retained. The deterministic hash uses the polynomial recurrence
+`hash = 31 * hash + character` over the trimmed, case-folded ID, then
+`Math.floorMod(hash, capacity)` to obtain a valid bucket index. The table starts at
+capacity 11 by default (or accepts a positive initial capacity) and doubles plus one
+when insertion would take the load factor above 0.75.
+
+Search, insertion, and deletion are expected O(1) with a reasonable distribution and
+O(n) in the worst case when many entries share a bucket. Resizing takes O(n).
+
+### Public API
+
+```java
+StudentBST tree = new StudentBST();
+boolean addedToTree = tree.insert(student);
+Student foundInTree = tree.search(studentId); // null if absent or invalid
+boolean removedFromTree = tree.delete(studentId);
+boolean treeHasId = tree.contains(studentId);
+boolean treeEmpty = tree.isEmpty();
+int treeSize = tree.size();
+Student[] sortedStudents = tree.toArrayInOrder();
+tree.displayInOrder();
+
+StudentHashTable index = new StudentHashTable(); // optionally new StudentHashTable(17)
+boolean addedToIndex = index.insert(student);
+Student foundInIndex = index.search(studentId); // null if absent or invalid
+boolean removedFromIndex = index.delete(studentId);
+boolean indexHasId = index.contains(studentId);
+int indexSize = index.size();
+int bucket = index.hashIndex(studentId); // current bucket, useful to inspect collisions
+index.display();
+```
+
+Both `insert` methods throw `IllegalArgumentException` for a null student or a null/
+blank student ID and return false for a duplicate ID. `search` returns null and
+`delete` returns false for missing IDs; blank/null lookup or deletion inputs are
+treated as invalid and return those same absent-result values. `StudentTreeNode`
+exposes read-only getters; tree links are not part of the integration API.
+
+### Integration with the shared student manager and final Main
+
+Build each index from the canonical list and use hashing for direct lookups while
+using the BST when sorted display is required:
+
+```java
+StudentBST studentTree = new StudentBST();
+StudentHashTable studentIndex = new StudentHashTable();
+for (Student student : studentManager.getAllStudents()) {
+    studentTree.insert(student);
+    studentIndex.insert(student);
+}
+
+Student student = studentIndex.search(enteredStudentId);
+studentTree.displayInOrder();
+```
+
+When a student is added or deleted through the manager, apply the same successful
+operation to both indexes. Keep the canonical list/manager as the owner of records;
+these structures are search and display indexes, not replacements for the linked list.
+
+### Checks
+
+Compile and run the standalone checks from the project root:
+
+```bash
+javac -d bin src/model/Student.java src/tree/*.java src/hash/*.java src/tests/StudentIndexTest.java
+java -ea -cp bin tests.StudentIndexTest
+```
+
+The checks exercise ordered traversal, two-child and leaf deletion, existing/missing
+searches, duplicate and invalid IDs, an explicit collision chain, hash deletion, and
+table resizing. Expected final line: `All StudentIndexTest checks passed.`
+>>>>>>> 730c80ec6a6b3507ea87731b7ccb4d22d780ec7f

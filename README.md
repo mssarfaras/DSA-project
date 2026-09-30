@@ -240,3 +240,93 @@ java -ea -cp bin tests.StackQueueTest
 ```
 
 The checks cover multi-item display, peek, LIFO/FIFO order, empty operations, and invalid data. Expected final line: `All StackQueueTest checks passed.`
+
+---
+
+## Component: Campus Graph & Route Management
+
+- **Assigned Member:** IF Hasna
+- **Student ID:** 23DA2-1154
+
+### 1. Overview and Responsibility
+
+This component is the **Campus Graph and Route Management** subsystem of the university application. It models the physical university campus as an **undirected graph** using a custom **Adjacency List** structure. It enables campus navigation, facility connection analysis, and route discovery for students and administrators without relying on third-party graph libraries.
+
+### 2. Graph Representation & Structure
+
+- **Vertices (Nodes):** Campus locations (e.g., `Main Gate`, `Library`, `Canteen`, `Laboratory`, `Lecture Hall`, `Student Center`). Implemented in `graph.GraphNode`.
+- **Edges (Roads / Paths):** Undirected, bidirectional paths connecting locations. When a path is added between location $A$ and location $B$, it automatically connects $A \to B$ and $B \to A$.
+- **Adjacency List:** Each location maintains a linked list of direct neighbor names. The graph stores vertices in a map preserving registration order for clean tabular display.
+
+### 3. Key Classes
+
+1. **`graph.GraphNode`**:
+   - Represents a campus location vertex.
+   - Encapsulates location name, adjacent neighbor list, degree counting, and connection helpers.
+2. **`graph.GraphQueue<T>`**:
+   - Custom singly-linked FIFO Queue implemented from scratch.
+   - Used for manual, library-free Breadth-First Search (BFS) and shortest route pathfinding.
+3. **`graph.CampusGraph`**:
+   - Core campus network engine.
+   - Provides vertex/edge mutations (`addLocation`, `removeLocation`, `addConnection`, `removeConnection`), traversals (`bfs`, `dfs`), route navigation (`findShortestPath`), and network queries (`containsLocation`, `hasConnection`, `getNeighbours`, `getLocationCount`, `getConnectionCount`).
+4. **`test.CampusGraphTest`**:
+   - Complete verification suite demonstrating all 13 required test cases plus route navigation.
+
+### 4. Graph Traversals & Route Navigation
+
+- **Breadth-First Search (BFS):**
+  - Explores the campus level-by-level using our manual `GraphQueue`.
+  - Time Complexity: $O(V + E)$, Space Complexity: $O(V)$.
+- **Depth-First Search (DFS):**
+  - Explores campus branches deeply before backtracking using recursion.
+  - Time Complexity: $O(V + E)$, Space Complexity: $O(V)$.
+- **Shortest Route Discovery (`findShortestPath`):**
+  - BFS-based parent-pointer path reconstruction finding the minimum number of roads/hops between any two locations.
+
+### 5. Defensive Validation & Robustness
+
+- **Duplicate Locations:** Handled cleanly with warning feedback; no duplicate nodes created.
+- **Null / Empty Inputs:** Location names validated and sanitized; blanks rejected.
+- **Duplicate Connections:** Verified before adding; duplicate edges rejected.
+- **Missing Location Handling:** Connections to non-existent locations rejected.
+- **Cascade Removal:** Removing a location automatically purges all incoming/outgoing connections from all neighboring vertices.
+- **Safe Traversals:** Running BFS or DFS from a missing location safely returns an empty list without throwing unhandled exceptions.
+
+### 6. Public Integration API
+
+```java
+CampusGraph graph = new CampusGraph();
+
+// Location management
+graph.addLocation("Main Gate");
+graph.addLocation("Library");
+graph.removeLocation("Laboratory");
+boolean exists = graph.containsLocation("Library");
+int totalLocations = graph.getLocationCount();
+
+// Road/Connection management
+graph.addConnection("Main Gate", "Library");
+graph.removeConnection("Main Gate", "Canteen");
+boolean connected = graph.hasConnection("Main Gate", "Library");
+int totalRoads = graph.getConnectionCount();
+
+// Display
+graph.displayConnections();
+graph.displayNeighbours("Library");
+
+// Traversals & Routing
+List<String> bfsPath = graph.bfs("Main Gate");
+List<String> dfsPath = graph.dfs("Main Gate");
+List<String> shortestRoute = graph.findShortestPath("Main Gate", "Student Center");
+```
+
+### 7. Compilation and Test Execution
+
+```bash
+# Compile the graph component and test suite
+javac -d bin src/graph/*.java src/test/CampusGraphTest.java
+
+# Run the 13 verification checks
+java -cp bin test.CampusGraphTest
+```
+
